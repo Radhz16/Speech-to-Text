@@ -1,0 +1,1036 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Speech Translator</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4895ef;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    /* Glassmorphism Effect */
+    .glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Holographic Effect for Cards */
+    .holo-card {
+      position: relative;
+      overflow: hidden;
+    }
+    .holo-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(to bottom right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+      transform: rotate(30deg);
+      animation: holoAnim 6s linear infinite;
+    }
+    @keyframes holoAnim {
+      from { transform: translateX(-100%) rotate(30deg); }
+      to { transform: translateX(100%) rotate(30deg); }
+    }
+
+    /* Background and Grain Animation */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 30% 60%, var(--secondary), #1a1a2e);
+      z-index: -2;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path fill="rgba(255,255,255,0.02)" d="M0,0 L100,0 L100,100 L0,100 Z" /></svg>');
+      z-index: -1;
+      animation: grain 8s steps(10) infinite;
+    }
+    @keyframes grain {
+      0%, 100% { transform: translate(0,0); }
+      10% { transform: translate(-5%,-10%); }
+      20% { transform: translate(-15%,5%); }
+      30% { transform: translate(7%,-25%); }
+      40% { transform: translate(-5%,25%); }
+      50% { transform: translate(-15%,10%); }
+      60% { transform: translate(15%,0); }
+      70% { transform: translate(0,15%); }
+      80% { transform: translate(3%,35%); }
+      90% { transform: translate(-10%,10%); }
+    }
+
+    /* Typewriter Effect */
+    .typewriter {
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 3px solid var(--accent);
+      animation: typing 3.5s steps(40, end) forwards, blink-caret 0.75s step-end infinite;
+    }
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+    @keyframes blink-caret {
+      50% { border-color: transparent; }
+    }
+
+    /* Mic Button 3D & Pulse Effect */
+    .mic-btn {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3), 0 6px 6px rgba(0, 0, 0, 0.2), inset 0 -3px 10px rgba(255,255,255,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .mic-btn:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 15px 30px rgba(67, 97, 238, 0.4);
+    }
+    .mic-btn:active {
+      transform: translateY(1px);
+    }
+    .pulse-ring {
+      animation: none;
+      opacity: 0;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      70% { transform: scale(1.3); opacity: 0; }
+      100% { transform: scale(0.9); opacity: 0; }
+    }
+    
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .toast.show {
+      opacity: 1;
+    }
+    
+    /* Audio player */
+    .audio-player {
+      width: 100%;
+      margin-top: 10px;
+    }
+    
+    /* Language dropdown */
+    .language-dropdown {
+      position: absolute;
+      z-index: 50;
+      width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
+      background: rgba(31, 41, 55, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      display: none;
+    }
+    
+    .language-option {
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .language-option:hover {
+      background-color: rgba(59, 130, 246, 0.5);
+    }
+    
+    /* File upload button */
+    .file-upload-btn {
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .file-upload-btn input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    /* Add these styles to your CSS file */
+    /* Action Items Container */
+.action-items-container {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.action-items-container h3 {
+  margin-bottom: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+}
+
+.action-items-container h3::before {
+  content: "•";
+  color: #4895ef;
+  margin-right: 8px;
+  font-size: 1.5rem;
+}
+
+.action-items-list {
+  min-height: 50px;
+  padding: 0;
+}
+
+.action-item {
+  padding: 10px 14px;
+  margin: 8px 0;
+  background: rgba(67, 97, 238, 0.15);
+  border-left: 3px solid #4361ee;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.action-item:hover {
+  background: rgba(67, 97, 238, 0.25);
+  transform: translateX(3px);
+}
+
+.action-item::before {
+  content: "→";
+  color: #4895ef;
+  margin-right: 10px;
+  font-weight: bold;
+}
+  </style>
+</head>
+<body class="text-white">
+  <!-- Navigation -->
+  <nav class="glass fixed top-5 left-1/2 transform -translate-x-1/2 w-11/12 max-w-6xl px-8 py-4 flex items-center justify-between z-50">
+    <div class="flex items-center space-x-4">
+      <i class="fas fa-language text-3xl"></i>
+      <h1 class="text-2xl font-bold">AI Speech Translator</h1>
+    </div>
+    <div class="flex items-center space-x-8">
+      <a href="#demo" class="transition hover:text-gray-300">Live Demo</a>
+      <a href="#tech" class="transition hover:text-gray-300">Technology</a>
+      <a href="#history" class="transition hover:text-gray-300">History</a>
+      <button onclick="document.getElementById('demo').scrollIntoView({behavior: 'smooth'})" class="glass px-6 py-2 rounded-full transition hover:bg-opacity-50 flex items-center space-x-2">
+        <span>Try Now</span>
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Hero Section -->
+  <section class="relative flex items-center justify-center h-screen overflow-hidden">
+    <div class="glass p-12 max-w-3xl text-center z-10">
+      <h2 class="typewriter text-5xl font-extrabold mb-6">Break Language Barriers</h2>
+      <p class="text-lg text-gray-300 mb-10">Real-time AI-powered speech translation with 98.7% accuracy across 50+ languages</p>
+      <div class="flex justify-center space-x-6">
+        <button onclick="document.getElementById('demo').scrollIntoView({behavior: 'smooth'})" class="glass bg-blue-600 px-8 py-3 rounded-full font-semibold flex items-center space-x-2 transition">
+          <i class="fas fa-microphone"></i>
+          <span>Start Translating</span>
+        </button>
+        <button class="glass border border-white bg-transparent px-8 py-3 rounded-full font-semibold flex items-center space-x-2 transition">
+          <i class="fas fa-video"></i>
+          <span>See Demo</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Translator Demo Section -->
+  <section id="demo" class="py-20 relative">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-16">Experience the Future of Communication</h2>
+      <div class="glass p-10 rounded-2xl">
+        <div class="flex flex-col md:flex-row gap-10">
+          <!-- Language Selection -->
+          <div class="flex-1 space-y-6">
+            <h3 class="text-xl font-semibold mb-4">Select Languages</h3>
+            
+            <!-- Input Language -->
+            <div class="relative">
+              <div class="holo-card glass p-6 rounded-lg relative cursor-pointer transition transform hover:scale-105"
+                   onclick="showLanguageDropdown('input')">
+                <div class="flex items-center space-x-4">
+                  <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-700 rounded-full flex items-center justify-center">
+                    <i class="fas fa-microphone text-white"></i>
+                  </div>
+                  <div>
+                    <p class="font-semibold">Input Language</p>
+                    <p class="text-sm text-gray-300" id="input-language">Auto Detect</p>
+                  </div>
+                </div>
+                <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-300"></i>
+              </div>
+              <div id="input-language-dropdown" class="language-dropdown">
+                <!-- Options will be populated by JavaScript -->
+              </div>
+            </div>
+            
+            <!-- Swap Button -->
+            <div class="flex justify-center">
+              <div class="glass w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition transform hover:scale-110"
+                   onclick="swapLanguages()">
+                <i class="fas fa-exchange-alt text-white"></i>
+              </div>
+            </div>
+            
+            <!-- Output Language -->
+            <div class="relative">
+              <div class="holo-card glass p-6 rounded-lg relative cursor-pointer transition transform hover:scale-105"
+                   onclick="showLanguageDropdown('output')">
+                <div class="flex items-center space-x-4">
+                  <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-700 rounded-full flex items-center justify-center">
+                    <i class="fas fa-globe text-white"></i>
+                  </div>
+                  <div>
+                    <p class="font-semibold">Output Language</p>
+                    <p class="text-sm text-gray-300" id="output-language">Spanish</p>
+                  </div>
+                </div>
+                <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-300"></i>
+              </div>
+              <div id="output-language-dropdown" class="language-dropdown">
+                <!-- Options will be populated by JavaScript -->
+              </div>
+            </div>
+            
+            <!-- Language Fact -->
+            <div class="holo-card glass p-4 rounded-lg">
+              <h4 class="font-semibold mb-2">Did You Know?</h4>
+              <p class="text-sm" id="current-language-fact">Select a language to see interesting facts</p>
+            </div>
+          </div>
+          
+          <!-- Translation Area -->
+          <div class="flex-1 space-y-6">
+            <div class="flex gap-6">
+              <!-- Input Text -->
+              <div class="flex-1">
+                <div class="glass p-4 rounded-lg h-48 relative">
+                  <textarea id="input-text" class="w-full h-full bg-transparent text-white focus:outline-none resize-none" 
+                            placeholder="Speak or type here..."></textarea>
+                  <div class="absolute bottom-4 right-4 flex space-x-2">
+                    <div class="glass w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                         onclick="clearInput()">
+                      <i class="fas fa-trash text-white text-xs"></i>
+                    </div>
+                    <div class="glass w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                         onclick="copyInput()">
+                      <i class="fas fa-copy text-white text-xs"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Output Text -->
+              <div class="flex-1">
+                <div class="glass p-4 rounded-lg h-48 relative bg-white/20">
+                  <div id="output-text" class="w-full h-full text-white overflow-y-auto">
+                    Translation will appear here...
+                  </div>
+                  <div class="absolute bottom-4 right-4 flex space-x-2">
+                    <div class="glass w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                         onclick="copyOutput()">
+                      <i class="fas fa-copy text-white text-xs"></i>
+                    </div>
+                    <div class="glass w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                         onclick="speakOutput()">
+                      <i class="fas fa-volume-up text-white text-xs"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="flex flex-col items-center space-y-4">
+              <div class="flex space-x-4 w-full">
+                <!-- File Upload -->
+                
+                
+                <!-- Replace your upload button with this simplified version -->
+                <div style="position: relative;">
+                  <button class="glass px-4 py-2 rounded">
+                  <i class="fas fa-upload mr-2"></i>
+                    Upload Audio
+                  </button>
+                  <input type="file" id="audio-upload" 
+                      accept="audio/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                </div>
+                
+                <!-- Microphone Button -->
+                <div id="mic-button" class="mic-btn relative w-14 h-14 rounded-full flex items-center justify-center cursor-pointer">
+                  <i class="fas fa-microphone text-white text-xl"></i>
+                  <div class="pulse-ring absolute inset-0 rounded-full border-2 border-white"></div>
+                </div>
+              </div>
+              <!-- Add this below your microphone button in your HTML file -->
+              <div class="action-items-container">
+                <h3>Action Items</h3>
+                  <div id="actionItemsList" class="action-items-list">
+                        <!-- Action items will appear here -->
+                  </div>
+              </div>
+              
+              <!-- Audio Player -->
+              <div id="audio-player-container" class="hidden w-full">
+                <audio id="audio-player" controls class="audio-player"></audio>
+              </div> 
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- History Section -->
+  <section id="history" class="py-20 relative">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-16">Translation History</h2>
+      <div class="glass p-6 rounded-2xl">
+        <div id="history-container" class="space-y-4 max-h-96 overflow-y-auto">
+          <p class="text-center text-gray-400">Your translation history will appear here</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Technology Stack Section -->
+  <section id="tech" class="py-20 relative">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-4">Cutting-Edge Technology</h2>
+      <p class="text-center text-gray-300 max-w-2xl mx-auto mb-12">Powered by the latest advancements in AI and machine learning</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="glass p-8 rounded-lg text-center transition transform hover:scale-105">
+          <div class="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-700 rounded-full mx-auto flex items-center justify-center mb-4">
+            <i class="fas fa-brain text-white text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Neural Machine Translation</h3>
+          <p class="text-gray-300">Transformer-based models with 98.7% accuracy</p>
+        </div>
+        <div class="glass p-8 rounded-lg text-center transition transform hover:scale-105">
+          <div class="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-700 rounded-full mx-auto flex items-center justify-center mb-4">
+            <i class="fas fa-microphone-alt text-white text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Speech Recognition</h3>
+          <p class="text-gray-300">Real-time processing with 95% word accuracy</p>
+        </div>
+        <div class="glass p-8 rounded-lg text-center transition transform hover:scale-105">
+          <div class="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-700 rounded-full mx-auto flex items-center justify-center mb-4">
+            <i class="fas fa-robot text-white text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Contextual AI</h3>
+          <p class="text-gray-300">Understands idioms and cultural nuances</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scripts -->
+  <script>
+    console.log("Script loaded!");
+    // Global variables
+    let currentInputLang = 'auto';
+    let currentOutputLang = 'es';
+    let isRecording = false;
+    let mediaRecorder;
+    let audioChunks = [];
+    let languages = {};
+    let supportedLanguages = {};
+
+    // Initialize the application when DOM is loaded
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Initialize microphone button
+      initMicButton();
+      
+      // Initialize file upload
+      initFileUpload();
+      
+      // Load supported languages from backend
+      await loadLanguages();
+      
+      // Populate language dropdowns
+      populateLanguageDropdowns();
+      
+      // Load translation history
+      loadHistory();
+      
+      // Set up clickaway handler for dropdowns
+      document.addEventListener('click', function(event) {
+        if (!event.target.closest('.language-dropdown') && !event.target.closest('[onclick*="showLanguageDropdown"]')) {
+          document.querySelectorAll('.language-dropdown').forEach(dropdown => {
+            dropdown.style.display = 'none';
+          });
+        }
+      });
+    });
+    document.getElementById('audio-upload').addEventListener('change', function() {
+      console.log("File input changed!"); // Check if this appears when selecting a file
+      alert("File selected!"); // Force a visible browser alert
+    });
+
+    // Initialize microphone button
+    function initMicButton() {
+      const micBtn = document.getElementById('mic-button');
+      micBtn.addEventListener('click', toggleRecording);
+    }
+
+    async function detectActionItems(text) {
+      const actionItemsList = document.getElementById('actionItemsList');
+  
+      try {
+    // Clear previous items with loading state
+        actionItemsList.innerHTML = `
+        <div class="text-center py-2 text-blue-500">
+          <i class="fas fa-circle-notch fa-spin mr-2"></i>
+          Detecting action items...
+        </div>
+    `   ;
+
+        console.log("[DEBUG] Sending text to backend:", text);
+    
+        const response = await fetch('http://127.0.0.1:5000/detect-actions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ text: text.substring(0, 1000) }) // Limit text length
+        });
+
+        console.log("[DEBUG] Response status:", response.status);
+    
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("[DEBUG] Action items received:", data.action_items);
+    
+        if (!data.action_items || data.action_items.length === 0) {
+          displayActionItems([]);
+          showToast("No action items found in the text");
+        } else {
+          displayActionItems(data.action_items);
+          showToast(`Found ${data.action_items.length} action items`);
+        }
+    
+      } catch (error) {
+        console.error("[ERROR] Action detection failed:", error);
+        actionItemsList.innerHTML = `
+        <div class="text-red-500 p-2 rounded bg-red-50">
+          <i class="fas fa-exclamation-triangle mr-2"></i>
+          Action detection failed: ${error.message}
+        </div>
+    `   ;
+      }
+    }
+
+    function displayActionItems(items) {
+      const container = document.getElementById('actionItemsList');
+  
+  // Force UI refresh
+      container.style.display = 'none';
+      setTimeout(() => {
+        container.innerHTML = ''; // Clear previous items
+    
+        if (!items || items.length === 0) {
+        container.innerHTML = `
+          <div class="text-gray-500 text-sm p-3 italic">
+            No actionable items found. Try phrases like:
+            <ul class="list-disc pl-5 mt-2">
+              <li>"Send me the report"</li>
+              <li>"Call John tomorrow"</li>
+              <li>"Follow up on the project"</li>
+            </ul>
+          </div>
+      `   ;
+        } else {
+            items.forEach((item, index) => {
+            const itemElement = document.createElement('div');
+            itemElement.className = `action-item flex items-start p-3 mb-2 rounded-lg bg-blue-50 border-l-4 border-blue-500 animate-fade-in`;
+            itemElement.style.animationDelay = `${index * 0.1}s`;
+            itemElement.innerHTML = `
+            <span class="mr-2 text-blue-500">${index + 1}.</span>
+            <span class="font-medium">${item}</span>
+        `   ;
+            container.appendChild(itemElement);
+          });
+        }
+    
+        container.style.display = 'block';
+      }, 50);
+    }
+
+    // Initialize file upload
+  
+
+
+    function initFileUpload() {
+    const fileInput = document.getElementById('audio-upload');
+    fileInput.addEventListener('change', async function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        showToast('Uploading audio file...');
+        console.log("Selected file:", file.name); // Debug log
+
+        try {
+            const formData = new FormData();
+            formData.append('audio', file);
+            formData.append('language', currentOutputLang);
+            console.log("FormData prepared:", formData); // Debug log
+
+            const response = await fetch('http://127.0.0.1:5000/api/transcribe', {
+                method: 'POST',
+                body: formData
+            });
+
+            console.log("Response status:", response.status); // Debug log
+
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log("Translation result:", data); // Debug log
+
+            // Update UI with results
+            document.getElementById('input-text').value = data.original_text;
+            document.getElementById('output-text').textContent = data.translated_text;
+            document.getElementById('current-language-fact').textContent = data.language_fact;
+
+            if (data.audio_path) {
+                const audioPlayer = document.getElementById('audio-player');
+                audioPlayer.src = `http://127.0.0.1:5000${data.audio_path}`;
+                document.getElementById('audio-player-container').classList.remove('hidden');
+            }
+
+            showToast('Translation complete!');
+            loadHistory();
+        } catch (error) {
+            console.error("Upload error:", error);
+            showToast(`Upload failed: ${error.message}`);
+        }
+    });
+  }
+
+
+    // Handle file upload
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      showToast('Uploading and processing audio...');
+      
+      try {
+        const formData = new FormData();
+        formData.append('audio', file);
+        formData.append('language', currentOutputLang);
+        
+        const response = await fetch('http://127.0.0.1:5000/api/transcribe', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Upload failed');
+        
+        const data = await response.json();
+        document.getElementById('input-text').value = data.original_text;
+        document.getElementById('output-text').textContent = data.translated_text;
+        
+        
+        // Show language fact
+        document.getElementById('current-language-fact').textContent = data.language_fact;
+        
+        // Show audio player if available
+        if (data.audio_path) {
+          const audioPlayer = document.getElementById('audio-player');
+          audioPlayer.src = `http://127.0.0.1:5000${data.audio_path}`;
+          document.getElementById('audio-player-container').classList.remove('hidden');
+        }
+        
+        showToast('Translation complete!');
+        detectActionItems(data.original_text);
+        
+        // Reload history to show the new translation
+        loadHistory();
+      } catch (error) {
+        console.error('Upload error:', error);
+        showToast('Upload failed. Please try again.');
+      }
+      
+      // Reset file input
+      event.target.value = '';
+    }
+
+    // Load supported languages from backend
+    async function loadLanguages() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/languages');
+        if (!response.ok) throw new Error('Failed to load languages');
+        
+        const data = await response.json();
+        languages = data;
+        
+        // Create a simplified version with just language codes and names
+        supportedLanguages = {};
+        Object.keys(languages).forEach(code => {
+          supportedLanguages[code] = languages[code].name || languages[code];
+        });
+        
+        // Set default output language to Spanish if available
+        if ('es' in supportedLanguages) {
+          currentOutputLang = 'es';
+          document.getElementById('output-language').textContent = supportedLanguages['es'];
+          updateLanguageFact('es');
+        }
+      } catch (error) {
+        console.error('Error loading languages:', error);
+        showToast('Failed to load supported languages');
+        
+        // Fallback to basic languages
+        supportedLanguages = {
+          'en': 'English',
+          'es': 'Spanish',
+          'fr': 'French',
+          'de': 'German',
+          'it': 'Italian'
+        };
+      }
+    }
+
+    // Populate language dropdowns
+    function populateLanguageDropdowns() {
+      const inputDropdown = document.getElementById('input-language-dropdown');
+      const outputDropdown = document.getElementById('output-language-dropdown');
+      
+      // Clear existing options
+      inputDropdown.innerHTML = '';
+      outputDropdown.innerHTML = '';
+      
+      // Add auto-detect only to input dropdown
+      const autoDetectOption = document.createElement('div');
+      autoDetectOption.className = 'language-option';
+      autoDetectOption.innerHTML = '<span class="mr-2">🌐</span> Auto Detect';
+      autoDetectOption.onclick = () => selectLanguage('auto', 'Auto Detect', 'input');
+      inputDropdown.appendChild(autoDetectOption);
+      
+      // Add all supported languages to both dropdowns
+      Object.entries(supportedLanguages).forEach(([code, name]) => {
+        const flagEmoji = getFlagEmoji(code);
+        
+        // Input dropdown option
+        const inputOption = document.createElement('div');
+        inputOption.className = 'language-option';
+        inputOption.innerHTML = `<span class="mr-2">${flagEmoji}</span> ${name}`;
+        inputOption.onclick = () => selectLanguage(code, name, 'input');
+        inputDropdown.appendChild(inputOption);
+        
+        // Output dropdown option
+        const outputOption = document.createElement('div');
+        outputOption.className = 'language-option';
+        outputOption.innerHTML = `<span class="mr-2">${flagEmoji}</span> ${name}`;
+        outputOption.onclick = () => selectLanguage(code, name, 'output');
+        outputDropdown.appendChild(outputOption);
+      });
+    }
+
+    // Get flag emoji for language code
+    function getFlagEmoji(languageCode) {
+      const flagMap = {
+        'en': '🇺🇸', 'es': '🇪🇸', 'fr': '🇫🇷', 'de': '🇩🇪', 
+        'it': '🇮🇹', 'pt': '🇵🇹', 'ru': '🇷🇺', 'zh': '🇨🇳',
+        'ja': '🇯🇵', 'ko': '🇰🇷', 'ar': '🇸🇦', 'hi': '🇮🇳'
+      };
+      return flagMap[languageCode] || '🌐';
+    }
+
+    // Show language dropdown
+    function showLanguageDropdown(type) {
+      event.stopPropagation();
+      
+      // Hide all dropdowns first
+      document.querySelectorAll('.language-dropdown').forEach(dropdown => {
+        dropdown.style.display = 'none';
+      });
+      
+      // Show the requested dropdown
+      const dropdown = document.getElementById(`${type}-language-dropdown`);
+      dropdown.style.display = 'block';
+    }
+
+    // Select language
+    function selectLanguage(code, name, type) {
+      if (type === 'input') {
+        currentInputLang = code;
+        document.getElementById('input-language').textContent = name;
+      } else {
+        currentOutputLang = code;
+        document.getElementById('output-language').textContent = name;
+        updateLanguageFact(code);
+      }
+      
+      // Hide the dropdown
+      document.getElementById(`${type}-language-dropdown`).style.display = 'none';
+    }
+
+    // Update language fact display
+    function updateLanguageFact(langCode) {
+      if (languages[langCode] && languages[langCode].facts) {
+        const facts = languages[langCode].facts;
+        const randomFact = facts[Math.floor(Math.random() * facts.length)];
+        document.getElementById('current-language-fact').textContent = randomFact;
+      } else {
+        document.getElementById('current-language-fact').textContent = 
+          `Selected ${supportedLanguages[langCode]} as output language`;
+      }
+    }
+
+    // Swap input and output languages
+    function swapLanguages() {
+      if (currentInputLang === 'auto') {
+        showToast("Can't swap when input is Auto Detect");
+        return;
+      }
+      
+      [currentInputLang, currentOutputLang] = [currentOutputLang, currentInputLang];
+      const inputName = document.getElementById('input-language').textContent;
+      const outputName = document.getElementById('output-language').textContent;
+      document.getElementById('input-language').textContent = outputName;
+      document.getElementById('output-language').textContent = inputName;
+      
+      // Also swap the text in the input/output fields if they exist
+      const inputText = document.getElementById('input-text').value;
+      const outputText = document.getElementById('output-text').textContent;
+      if (inputText && outputText !== 'Translation will appear here...') {
+        document.getElementById('input-text').value = outputText;
+        document.getElementById('output-text').textContent = inputText;
+      }
+      
+      // Update language fact
+      updateLanguageFact(currentOutputLang);
+    }
+
+    // Toggle recording
+    async function toggleRecording() {
+      if (!isRecording) {
+        // Start recording
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+          
+          mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+          };
+          
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            await processAudio(audioBlob);
+          };
+          
+          mediaRecorder.start();
+          isRecording = true;
+          document.getElementById('mic-button').classList.add('recording');
+          const pulseRing = document.querySelector('.pulse-ring');
+          pulseRing.style.animation = 'pulse 1.5s infinite';
+          pulseRing.style.opacity = '0.7';
+          showToast('Recording started...');
+        } catch (err) {
+          console.error('Error accessing microphone:', err);
+          showToast('Microphone access denied');
+        }
+      } else {
+        // Stop recording
+        mediaRecorder.stop();
+        isRecording = false;
+        document.getElementById('mic-button').classList.remove('recording');
+        const pulseRing = document.querySelector('.pulse-ring');
+        pulseRing.style.animation = 'none';
+        pulseRing.style.opacity = '0';
+        showToast('Processing audio...');
+      }
+    }
+
+    // Process recorded audio
+    async function processAudio(audioBlob) {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.wav');
+      formData.append('language', currentOutputLang);
+      
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/transcribe', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Translation failed');
+        
+        const data = await response.json();
+        document.getElementById('input-text').value = data.original_text;
+        document.getElementById('output-text').textContent = data.translated_text;
+
+        
+        
+        // Show language fact
+        document.getElementById('current-language-fact').textContent = data.language_fact;
+        
+        // Show audio player if available
+        if (data.audio_path) {
+          const audioPlayer = document.getElementById('audio-player');
+          audioPlayer.src = `http://127.0.0.1:5000${data.audio_path}`;
+          document.getElementById('audio-player-container').classList.remove('hidden');
+        }
+        
+        showToast('Translation complete!');
+        detectActionItems(data.original_text);
+        
+        // Reload history to show the new translation
+        loadHistory();
+      } catch (error) {
+        console.error('Translation error:', error);
+        showToast('Translation failed. Please try again.');
+      }
+    }
+
+    // Load translation history
+    async function loadHistory() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/history');
+        if (!response.ok) throw new Error('Failed to load history');
+        
+        const data = await response.json();
+        const historyContainer = document.getElementById('history-container');
+        
+        if (data.history && data.history.length > 0) {
+          historyContainer.innerHTML = '';
+          data.history.forEach(item => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'glass p-4 rounded-lg';
+            historyItem.innerHTML = `
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="font-semibold">${item.language_name} (${item.language_code})</p>
+                  <p class="text-sm text-gray-300">${new Date(item.timestamp).toLocaleString()}</p>
+                </div>
+                <button onclick="playHistoryAudio('${item.audio_path}')" class="glass w-8 h-8 rounded-full flex items-center justify-center">
+                  <i class="fas fa-play text-white text-xs"></i>
+                </button>
+              </div>
+              <div class="mt-2">
+                <p class="text-sm"><strong>Original:</strong> ${item.original_text}</p>
+                <p class="text-sm"><strong>Translation:</strong> ${item.translated_text}</p>
+              </div>
+            `;
+            historyContainer.appendChild(historyItem);
+          });
+        } else {
+          historyContainer.innerHTML = '<p class="text-center text-gray-400">No translation history yet</p>';
+        }
+      } catch (error) {
+        console.error('Error loading history:', error);
+        showToast('Failed to load history');
+      }
+    }
+
+    // Play audio from history
+    function playHistoryAudio(audioPath) {
+      if (!audioPath) return;
+      
+      const audioPlayer = document.getElementById('audio-player');
+      audioPlayer.src = `http://127.0.0.1:5000${audioPath}`;
+      document.getElementById('audio-player-container').classList.remove('hidden');
+      audioPlayer.play();
+    }
+
+    // Text Handling
+    function clearInput() {
+      document.getElementById('input-text').value = '';
+    }
+
+    function copyInput() {
+      const inputText = document.getElementById('input-text');
+      inputText.select();
+      document.execCommand('copy');
+      showToast('Input text copied!');
+    }
+
+    function copyOutput() {
+      const outputText = document.getElementById('output-text');
+      const range = document.createRange();
+      range.selectNode(outputText);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      document.execCommand('copy');
+      showToast('Translation copied!');
+    }
+
+    function speakOutput() {
+      const utterance = new SpeechSynthesisUtterance(
+        document.getElementById('output-text').textContent
+      );
+      utterance.lang = currentOutputLang;
+      speechSynthesis.speak(utterance);
+    }
+
+    // Show toast notification
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
